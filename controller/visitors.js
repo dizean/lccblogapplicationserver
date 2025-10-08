@@ -37,3 +37,40 @@ export const logoutVisitor = (req, res) => {
     }   
     );
 }
+
+export const todayLogs = (req, res) => {
+    const query = `SELECT
+                    name AS Name,
+                    purpose AS Purpose,
+                    DATE_FORMAT(logged_in, '%h:%i %p') AS Time_Checked_In,
+                    DATE_FORMAT(logged_out, '%h:%i %p') AS Time_Checked_Out
+                    FROM visitors_log vl
+                    WHERE vl.date = CURDATE()
+                    ORDER BY vl.date DESC;
+                    `;
+    db.query(query, (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.status(200).json(results);
+    }
+    );
+}
+
+export const allLogs = (req, res) => {
+    const query = `SELECT
+    name Name,
+    DATE_FORMAT(vl.date, '%M %d, %Y') Date,
+    purpose Purpose,
+    DATE_FORMAT(logged_in, '%h:%i %p') AS Time_Checked_In,
+    DATE_FORMAT(logged_out, '%h:%i %p') AS Time_Checked_Out
+    FROM visitors_log vl
+    ORDER BY vl.date DESC`;
+    db.query(query, (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.status(200).json(results);
+    }
+    );
+}

@@ -67,3 +67,41 @@ export const time_out = (req, res) => {
         }
     });
 };
+
+export const todayLogs = (req, res) => {
+    const query = `SELECT
+                    e.name AS Name,
+                    DATE_FORMAT(el.time_in, '%h:%i %p') AS Time_In,
+                    DATE_FORMAT(el.time_out, '%h:%i %p') AS Time_Out
+                    FROM employees e
+                    INNER JOIN employees_log el ON e.id = el.employee_id
+                    WHERE el.date = CURDATE()
+                    ORDER BY el.id DESC
+                    `;
+    db.query(query, (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.status(200).json(results);
+    }
+    );
+};
+
+export const allLogs = (req, res) => {
+    const query = `SELECT
+                    e.name as Name,
+                    DATE_FORMAT(el.date, '%M %d, %Y') AS Date,
+                    DATE_FORMAT(el.time_in, '%h:%i %p') AS Time_In,
+                    DATE_FORMAT(el.time_out, '%h:%i %p') AS Time_Out
+                    FROM employees e
+                    INNER JOIN employees_log el ON e.id = el.employee_id
+                    ORDER BY el.id DESC
+                    `;
+    db.query(query, (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.status(200).json(results);
+    }
+    );
+};

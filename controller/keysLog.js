@@ -44,3 +44,42 @@ export const returnKey = (req, res) => {
         return res.status(200).json({ message: "Key returned successfully" });
     });
 }
+
+export const todayLogs = (req, res) => {
+    const q = `SELECT
+        k.room Room,
+        eb.name Borrowed_By,
+        DATE_FORMAT(kl.time_borrowed, '%h:%i %p')Time_Borrowed,
+        er.name Returned_By,
+        DATE_FORMAT(kl.time_returned, '%h:%i %p') Time_Returned
+        FROM \`keys\` k
+        INNER JOIN keys_log kl ON k.id = kl.key_id
+        INNER JOIN employees eb ON kl.borrowed_by = eb.id  
+        LEFT JOIN employees er ON kl.returned_by = er.id
+        WHERE kl.date = CURDATE()
+        ORDER BY kl.date DESC, kl.time_borrowed DESC
+`;
+    db.query(q, (err, data) => {
+        if (err) return res.status(500).json(err);
+        return res.status(200).json(data);
+    });
+}
+export const allLogs = (req, res) => {
+    const q = `SELECT
+        k.room Room,
+        DATE_FORMAT(kl.date, '%M %d, %Y') Date,
+        eb.name Borrowed_By,
+        DATE_FORMAT(kl.time_borrowed, '%h:%i %p') Time_Borrowed,
+        er.name Returned_By,
+        DATE_FORMAT(kl.time_returned, '%h:%i %p') Time_Returned
+        FROM \`keys\` k
+        INNER JOIN keys_log kl ON k.id = kl.key_id
+        INNER JOIN employees eb ON kl.borrowed_by = eb.id  
+        LEFT JOIN employees er ON kl.returned_by = er.id
+        ORDER BY kl.date DESC, kl.time_borrowed DESC
+`;
+    db.query(q, (err, data) => {
+        if (err) return res.status(500).json(err);
+        return res.status(200).json(data);
+    });
+}
