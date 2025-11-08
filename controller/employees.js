@@ -1,9 +1,9 @@
 import db from "../config/db.js";
 // 0 - active, 1 - inactive
 export const addEmployee = (req, res) => {
-    const { name, department, classification, status } = req.body;
-    const query = "INSERT INTO employees (name, department, classification, status, active) VALUES (?, ?, ?, ?, 0)";
-    db.query(query, [name, department, classification, status], (err, result) => {
+    const { name, classification, status } = req.body;
+    const query = "INSERT INTO employees (name, classification, status, active) VALUES (?, ?, ?, 0)";
+    db.query(query, [name, classification, status], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
@@ -41,7 +41,7 @@ export const getEmployeeById = (req, res) => {
 export const updateEmployee = (req, res) => {
     const { id } = req.params;
     const { name, type } = req.body;
-    const query = "UPDATE employees SET name = ?, department =?, classification = ?, status = ? WHERE id = ? AND active = 0";
+    const query = "UPDATE employees SET name = ?, classification = ?, status = ? WHERE id = ? AND active = 0";
     db.query(query, [name, type, id], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
