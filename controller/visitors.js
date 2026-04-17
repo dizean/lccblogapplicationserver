@@ -12,9 +12,9 @@ export const getVisitorsLog = (req, res) => {
 }
 
 export const loginVisitor = (req, res) => {
-    const { name, purpose } = req.body;
-    const query = "INSERT INTO visitors_log (name, purpose, date, logged_in, logged_out) VALUES (?, ?, CURDATE(), NOW(), NULL)";
-    db.query(query, [name, purpose], (err, result) => {
+    const { name, purpose, id } = req.body;
+    const query = "INSERT INTO visitors_log (name, purpose, id, date, logged_in, logged_out) VALUES (?, ?, ?, CURDATE(), NOW(), NULL)";
+    db.query(query, [name, purpose, id], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
@@ -42,6 +42,7 @@ export const todayLogs = (req, res) => {
     const query = `SELECT
                     name AS Name,
                     purpose AS Purpose,
+                    id_type AS ID_Type,
                     DATE_FORMAT(logged_in, '%h:%i %p') AS Time_Checked_In,
                     DATE_FORMAT(logged_out, '%h:%i %p') AS Time_Checked_Out
                     FROM visitors_log vl
@@ -62,6 +63,7 @@ export const allLogs = (req, res) => {
     name Name,
     DATE_FORMAT(vl.date, '%M %d, %Y') Date,
     purpose Purpose,
+    id_type AS ID_Type,
     DATE_FORMAT(logged_in, '%h:%i %p') AS Time_Checked_In,
     DATE_FORMAT(logged_out, '%h:%i %p') AS Time_Checked_Out
     FROM visitors_log vl
