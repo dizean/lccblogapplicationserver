@@ -1,5 +1,5 @@
 import e from "express";
-import { getRoomKeysLog, borrowKey, returnKey, todayLogs, allLogs } from "../controller/keysLog.js";
+import { getRoomKeysLog, borrowKey, returnKey, todayLogs, allLogs, range } from "../controller/keysLog.js";
 
 const roomKeysLogRouter = e.Router();
 // Get all room keys log  
@@ -8,4 +8,5 @@ roomKeysLogRouter.post("/borrow", borrowKey);
 roomKeysLogRouter.put("/return", returnKey); 
 roomKeysLogRouter.get("/todayLogs", todayLogs);
 roomKeysLogRouter.get("/allLogs", allLogs);
+roomKeysLogRouter.get("/range", range);
 export default roomKeysLogRouter; 

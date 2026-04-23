@@ -83,3 +83,38 @@ export const allLogs = (req, res) => {
         return res.status(200).json(data);
     });
 }
+
+export const range = (req, res) => {
+    const { start, end } = req.query;
+
+    if (!start || !end) {
+        return res.status(400).json({ error: "Start and end dates are required" });
+    }
+
+    if (new Date(start) > new Date(end)) {
+        return res.status(400).json({ error: "Invalid date range" });
+    }
+
+    const query = `
+        SELECT
+            k.room AS Room,
+            DATE_FORMAT(kl.date, '%M %d, %Y') AS Date,
+            eb.name AS Borrowed_By,
+            DATE_FORMAT(kl.time_borrowed, '%h:%i %p') AS Time_Borrowed,
+            er.name AS Returned_By,
+            DATE_FORMAT(kl.time_returned, '%h:%i %p') AS Time_Returned
+        FROM \`keys\` k
+        INNER JOIN keys_log kl ON k.id = kl.key_id
+        INNER JOIN employees eb ON kl.borrowed_by = eb.id
+        LEFT JOIN employees er ON kl.returned_by = er.id
+        WHERE kl.date BETWEEN ? AND ?
+        ORDER BY kl.date DESC, kl.time_borrowed DESC
+    `;
+
+    db.query(query, [start, end], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.status(200).json(results);
+    });
+};

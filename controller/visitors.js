@@ -76,3 +76,35 @@ export const allLogs = (req, res) => {
     }
     );
 }
+
+export const range = (req, res) => {
+    const { start, end } = req.query;
+
+    if (!start || !end) {
+        return res.status(400).json({ error: "Start and end dates are required" });
+    }
+
+    if (new Date(start) > new Date(end)) {
+        return res.status(400).json({ error: "Invalid date range" });
+    }
+
+    const query = `
+        SELECT
+            name AS Name,
+            DATE_FORMAT(vl.date, '%M %d, %Y') AS Date,
+            purpose AS Purpose,
+            id_type AS ID_Type,
+            DATE_FORMAT(logged_in, '%h:%i %p') AS Time_Checked_In,
+            DATE_FORMAT(logged_out, '%h:%i %p') AS Time_Checked_Out
+        FROM visitors_log vl
+        WHERE vl.date BETWEEN ? AND ?
+        ORDER BY vl.date DESC, vl.logged_in DESC
+    `;
+
+    db.query(query, [start, end], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.status(200).json(results);
+    });
+};

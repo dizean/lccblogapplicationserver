@@ -105,3 +105,30 @@ export const allLogs = (req, res) => {
     }
     );
 };
+
+export const range = (req, res) => {
+    const { start, end } = req.query;
+
+    if (!start || !end) {
+        return res.status(400).json({ error: "Start and end dates are required" });
+    }
+
+    const query = `
+        SELECT
+            e.name AS Name,
+            DATE_FORMAT(el.date, '%M %d, %Y') AS Date,
+            DATE_FORMAT(el.time_in, '%h:%i %p') AS Time_In,
+            DATE_FORMAT(el.time_out, '%h:%i %p') AS Time_Out
+        FROM employees e
+        INNER JOIN employees_log el ON e.id = el.employee_id
+        WHERE el.date BETWEEN ? AND ?
+        ORDER BY el.date DESC, el.id DESC
+    `;
+
+    db.query(query, [start, end], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.status(200).json(results);
+    });
+};
