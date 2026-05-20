@@ -12,9 +12,9 @@ export const getVisitorsLog = (req, res) => {
 }
 
 export const loginVisitor = (req, res) => {
-    const { name, purpose, id } = req.body;
-    const query = "INSERT INTO visitors_log (name, purpose, id, date, logged_in, logged_out) VALUES (?, ?, ?, CURDATE(), NOW(), NULL)";
-    db.query(query, [name, purpose, id], (err, result) => {
+    const { name, purpose, id, img } = req.body;
+    const query = "INSERT INTO visitors_log (name, purpose, id, img, date, logged_in, logged_out) VALUES (?, ?, ?, ?, CURDATE(), NOW(), NULL)";
+    db.query(query, [name, purpose, id, img], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
@@ -43,6 +43,7 @@ export const todayLogs = (req, res) => {
                     name AS Name,
                     purpose AS Purpose,
                     id_type AS ID_Type,
+                    img AS Image,
                     DATE_FORMAT(logged_in, '%h:%i %p') AS Time_Checked_In,
                     DATE_FORMAT(logged_out, '%h:%i %p') AS Time_Checked_Out
                     FROM visitors_log vl
@@ -64,6 +65,7 @@ export const allLogs = (req, res) => {
     DATE_FORMAT(vl.date, '%M %d, %Y') Date,
     purpose Purpose,
     id_type AS ID_Type,
+    img AS Image,
     DATE_FORMAT(logged_in, '%h:%i %p') AS Time_Checked_In,
     DATE_FORMAT(logged_out, '%h:%i %p') AS Time_Checked_Out
     FROM visitors_log vl
@@ -94,6 +96,7 @@ export const range = (req, res) => {
             DATE_FORMAT(vl.date, '%M %d, %Y') AS Date,
             purpose AS Purpose,
             id_type AS ID_Type,
+            img AS Image,
             DATE_FORMAT(logged_in, '%h:%i %p') AS Time_Checked_In,
             DATE_FORMAT(logged_out, '%h:%i %p') AS Time_Checked_Out
         FROM visitors_log vl

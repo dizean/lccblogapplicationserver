@@ -28,7 +28,7 @@ async function loadRoutes() {
     app.use(routePath, routerModule.default);
   }
 }
-
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 async function startServer() {
   await loadRoutes(); // wait for routes to load
 
