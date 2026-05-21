@@ -12,9 +12,9 @@ export const getVisitorsLog = (req, res) => {
 }
 
 export const loginVisitor = (req, res) => {
-    const { name, purpose, id, img } = req.body;
-    const query = "INSERT INTO visitors_log (name, purpose, id, img, date, logged_in, logged_out) VALUES (?, ?, ?, ?, CURDATE(), NOW(), NULL)";
-    db.query(query, [name, purpose, id, img], (err, result) => {
+    const { name, purpose, gate, id, img } = req.body;
+    const query = "INSERT INTO visitors_log (name, purpose, gate, id, img, date, logged_in, logged_out) VALUES (?, ?, ?, ?, ?,CURDATE(), NOW(), NULL)";
+    db.query(query, [name, purpose, gate, id, img], (err, result) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
@@ -42,6 +42,7 @@ export const todayLogs = (req, res) => {
     const query = `SELECT
                     name AS Name,
                     purpose AS Purpose,
+                    gate AS Gate,
                     id_type AS ID_Type,
                     img AS Image,
                     DATE_FORMAT(logged_in, '%h:%i %p') AS Time_Checked_In,
@@ -64,6 +65,7 @@ export const allLogs = (req, res) => {
     name Name,
     DATE_FORMAT(vl.date, '%M %d, %Y') Date,
     purpose Purpose,
+    gate AS Gate,
     id_type AS ID_Type,
     img AS Image,
     DATE_FORMAT(logged_in, '%h:%i %p') AS Time_Checked_In,
@@ -95,6 +97,7 @@ export const range = (req, res) => {
             name AS Name,
             DATE_FORMAT(vl.date, '%M %d, %Y') AS Date,
             purpose AS Purpose,
+            gate AS Gate,
             id_type AS ID_Type,
             img AS Image,
             DATE_FORMAT(logged_in, '%h:%i %p') AS Time_Checked_In,
