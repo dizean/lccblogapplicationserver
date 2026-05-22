@@ -11,17 +11,91 @@ export const getVisitorsLog = (req, res) => {
     );
 }
 
-export const loginVisitor = (req, res) => {
-    const { name, purpose, gate, id, img } = req.body;
-    const query = "INSERT INTO visitors_log (name, purpose, gate, id, img, date, logged_in, logged_out) VALUES (?, ?, ?, ?, ?,CURDATE(), NOW(), NULL)";
-    db.query(query, [name, purpose, gate, id, img], (err, result) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.status(201).json({ message: "Visitor logged in successfully", logId: result.insertId });
+export const loginVisitor = async (req, res) => {
+    try {
+        const { name, purpose, gate, id, image } = req.body;
+        const query =
+            "INSERT INTO visitors_log (name, purpose, gate, id, date, logged_in, logged_out) VALUES (?, ?, ?, ?, CURDATE(), NOW(), NULL)";
+
+        db.query(query, [name, purpose, gate, id], async (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+
+            const logId = result.insertId;
+
+            if (image) {
+                try {
+                    // convert base64 → file
+                    const fileName = `${Date.now()}_visitor.jpg`;
+                    const filePath = path.join(process.cwd(), "uploads", fileName);
+
+                    const base64Data = image.replace(
+                        /^data:image\/\w+;base64,/,
+                        ""
+                    );
+
+                    fs.writeFileSync(filePath, base64Data, "base64");
+
+                    // load image for face-api
+                    const img = await canvas.loadImage(filePath);
+
+                    const detection = await faceapi
+                        .detectSingleFace(
+                            img,
+                            new faceapi.TinyFaceDetectorOptions()
+                        )
+                        .withFaceLandmarks()
+                        .withFaceDescriptor();
+
+                    if (!detection) {
+                        return res.status(400).json({
+                            message: "No face detected",
+                        });
+                    }
+
+                    const descriptor = Array.from(detection.descriptor);
+
+                    const faceQuery =
+                        "INSERT INTO visitor_faces (visitor_id, image_path, descriptor) VALUES (?, ?, ?)";
+
+                    db.query(
+                        faceQuery,
+                        [id, fileName, JSON.stringify(descriptor)],
+                        (err2) => {
+                            if (err2) {
+                                return res.status(500).json({
+                                    error: err2.message,
+                                });
+                            }
+
+                            return res.status(201).json({
+                                message: "Visitor logged + face saved",
+                                logId,
+                                faceSaved: true,
+                            });
+                        }
+                    );
+                } catch (faceErr) {
+                    console.error(faceErr);
+
+                    return res.status(500).json({
+                        message: "Face processing failed",
+                    });
+                }
+            } else {
+                return res.status(201).json({
+                    message: "Visitor logged (no face)",
+                    logId,
+                });
+            }
+        });
+    } catch (err) {
+        return res.status(500).json({
+            error: err.message,
+        });
     }
-    );
-}
+};
 
 export const logoutVisitor = (req, res) => {
     const { id } = req.body;
@@ -34,7 +108,7 @@ export const logoutVisitor = (req, res) => {
             return res.status(404).json({ message: "No active visitor record found" });
         }
         res.status(200).json({ message: "Visitor logged out successfully" });
-    }   
+    }
     );
 }
 
@@ -44,7 +118,6 @@ export const todayLogs = (req, res) => {
                     purpose AS Purpose,
                     gate AS Gate,
                     id_type AS ID_Type,
-                    img AS Image,
                     DATE_FORMAT(logged_in, '%h:%i %p') AS Time_Checked_In,
                     DATE_FORMAT(logged_out, '%h:%i %p') AS Time_Checked_Out
                     FROM visitors_log vl
@@ -67,7 +140,6 @@ export const allLogs = (req, res) => {
     purpose Purpose,
     gate AS Gate,
     id_type AS ID_Type,
-    img AS Image,
     DATE_FORMAT(logged_in, '%h:%i %p') AS Time_Checked_In,
     DATE_FORMAT(logged_out, '%h:%i %p') AS Time_Checked_Out
     FROM visitors_log vl
@@ -99,7 +171,6 @@ export const range = (req, res) => {
             purpose AS Purpose,
             gate AS Gate,
             id_type AS ID_Type,
-            img AS Image,
             DATE_FORMAT(logged_in, '%h:%i %p') AS Time_Checked_In,
             DATE_FORMAT(logged_out, '%h:%i %p') AS Time_Checked_Out
         FROM visitors_log vl
