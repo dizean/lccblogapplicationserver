@@ -39,7 +39,7 @@ router.post("/", upload.single("file"), (req, res) => {
       message: "No file uploaded",
     });
   }
-
+  console.log(`File uploaded: ${req.file.filename}`);
   return res.json({
     success: true,
     fileName: req.file.filename, // ONLY store this in DB

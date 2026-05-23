@@ -1,5 +1,7 @@
 import db from "../config/db.js";
-
+import path from "path";
+import fs from "fs";
+import { faceapi, canvas } from "../service/faceService.js";
 export const getVisitorsLog = (req, res) => {
     const query = `SELECT * FROM visitors_log ORDER BY date DESC`;
     db.query(query, (err, results) => {
@@ -12,89 +14,58 @@ export const getVisitorsLog = (req, res) => {
 }
 
 export const loginVisitor = async (req, res) => {
-    try {
-        const { name, purpose, gate, id, image } = req.body;
-        const query =
-            "INSERT INTO visitors_log (name, purpose, gate, id, date, logged_in, logged_out) VALUES (?, ?, ?, ?, CURDATE(), NOW(), NULL)";
+  try {
+    const { name, purpose, gate, id, image, descriptor } = req.body;
 
-        db.query(query, [name, purpose, gate, id], async (err, result) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
+    console.log("\n🟢 LOGIN REQUEST");
+    console.log({ name, purpose, gate, id, image });
 
-            const logId = result.insertId;
-
-            if (image) {
-                try {
-                    // convert base64 → file
-                    const fileName = `${Date.now()}_visitor.jpg`;
-                    const filePath = path.join(process.cwd(), "uploads", fileName);
-
-                    const base64Data = image.replace(
-                        /^data:image\/\w+;base64,/,
-                        ""
-                    );
-
-                    fs.writeFileSync(filePath, base64Data, "base64");
-
-                    // load image for face-api
-                    const img = await canvas.loadImage(filePath);
-
-                    const detection = await faceapi
-                        .detectSingleFace(
-                            img,
-                            new faceapi.TinyFaceDetectorOptions()
-                        )
-                        .withFaceLandmarks()
-                        .withFaceDescriptor();
-
-                    if (!detection) {
-                        return res.status(400).json({
-                            message: "No face detected",
-                        });
-                    }
-
-                    const descriptor = Array.from(detection.descriptor);
-
-                    const faceQuery =
-                        "INSERT INTO visitor_faces (visitor_id, image_path, descriptor) VALUES (?, ?, ?)";
-
-                    db.query(
-                        faceQuery,
-                        [id, fileName, JSON.stringify(descriptor)],
-                        (err2) => {
-                            if (err2) {
-                                return res.status(500).json({
-                                    error: err2.message,
-                                });
-                            }
-
-                            return res.status(201).json({
-                                message: "Visitor logged + face saved",
-                                logId,
-                                faceSaved: true,
-                            });
-                        }
-                    );
-                } catch (faceErr) {
-                    console.error(faceErr);
-
-                    return res.status(500).json({
-                        message: "Face processing failed",
-                    });
-                }
-            } else {
-                return res.status(201).json({
-                    message: "Visitor logged (no face)",
-                    logId,
-                });
-            }
-        });
-    } catch (err) {
-        return res.status(500).json({
-            error: err.message,
-        });
+    if (!descriptor || descriptor.length !== 128) {
+      return res.status(400).json({
+        message: "Invalid or missing face descriptor",
+      });
     }
+
+    const query =
+      "INSERT INTO visitors_log (name, purpose, gate, id_type, date, logged_in, logged_out) VALUES (?, ?, ?, ?, CURDATE(), NOW(), NULL)";
+
+    db.query(query, [name, purpose, gate, id], (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+
+      const logId = result.insertId;
+
+      console.log("📦 Saving descriptor length:", descriptor.length);
+      console.log("🔢 Sample:", descriptor.slice(0, 5));
+
+      // store face only if image exists
+      if (!image) {
+        return res.json({
+          message: "Visitor logged (no face)",
+          logId,
+        });
+      }
+
+      db.query(
+        "INSERT INTO visitors_faces (visitor_id, descriptor, image_path) VALUES (?, ?, ?)",
+        [logId, JSON.stringify(descriptor), image],
+        (err2) => {
+          if (err2) {
+            return res.status(500).json({ error: err2.message });
+          }
+
+          console.log("✅ FACE STORED SUCCESSFULLY");
+
+          return res.json({
+            message: "Visitor saved + face stored",
+            logId,
+          });
+        }
+      );
+    });
+  } catch (err) {
+    console.log("🔥 ERROR:", err);
+    return res.status(500).json({ error: err.message });
+  }
 };
 
 export const logoutVisitor = (req, res) => {
