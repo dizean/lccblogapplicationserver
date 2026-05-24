@@ -1,7 +1,6 @@
 import db from "../config/db.js";
 import path from "path";
 import fs from "fs";
-import { faceapi, canvas } from "../service/faceService.js";
 export const getVisitorsLog = (req, res) => {
     const query = `SELECT * FROM visitors_log ORDER BY date DESC`;
     db.query(query, (err, results) => {
@@ -15,45 +14,54 @@ export const getVisitorsLog = (req, res) => {
 
 export const loginVisitor = async (req, res) => {
   try {
-    const { name, purpose, gate, id, image, descriptor } = req.body;
+    const { name, purpose, gate, id, image, descriptor, mode } = req.body;
 
-    console.log("\n🟢 LOGIN REQUEST");
-    console.log({ name, purpose, gate, id, image });
+    const finalDescriptor =
+      Array.isArray(descriptor)
+        ? descriptor
+        : JSON.parse(descriptor || "[]");
 
-    if (!descriptor || descriptor.length !== 128) {
+    if (!finalDescriptor || finalDescriptor.length !== 128) {
       return res.status(400).json({
         message: "Invalid or missing face descriptor",
       });
     }
 
-    const query =
+    // STEP 1: ALWAYS LOG VISIT
+    const logQuery =
       "INSERT INTO visitors_log (name, purpose, gate, id_type, date, logged_in, logged_out) VALUES (?, ?, ?, ?, CURDATE(), NOW(), NULL)";
 
-    db.query(query, [name, purpose, gate, id], (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
+    db.query(logQuery, [name, purpose, gate, id], (err, result) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
 
       const logId = result.insertId;
 
-      console.log("📦 Saving descriptor length:", descriptor.length);
-      console.log("🔢 Sample:", descriptor.slice(0, 5));
+      // STEP 2: IF EXISTING USER → STOP HERE
+    //   if (mode !== "NEW") {
+    //     return res.json({
+    //       message: "Existing visitor logged",
+    //       logId,
+    //     });
+    //   }
 
-      // store face only if image exists
+      // STEP 3: NEW USER MUST HAVE IMAGE
       if (!image) {
-        return res.json({
-          message: "Visitor logged (no face)",
+        return res.status(400).json({
+          message: "Image required for new visitor",
           logId,
         });
       }
 
+      // STEP 4: SAVE FACE DATA
       db.query(
         "INSERT INTO visitors_faces (visitor_id, descriptor, image_path) VALUES (?, ?, ?)",
-        [logId, JSON.stringify(descriptor), image],
+        [logId, JSON.stringify(finalDescriptor), image],
         (err2) => {
           if (err2) {
             return res.status(500).json({ error: err2.message });
           }
-
-          console.log("✅ FACE STORED SUCCESSFULLY");
 
           return res.json({
             message: "Visitor saved + face stored",

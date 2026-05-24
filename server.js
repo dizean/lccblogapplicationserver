@@ -7,8 +7,6 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { loadModels } from "./service/faceService.js";
-
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -68,12 +66,6 @@ app.get("/", (req, res) => {
 
 async function startServer() {
   try {
-    console.log("⏳ Loading face recognition models...");
-
-    await loadModels();
-
-    console.log("✅ Face models loaded");
-
     await loadRoutes();
 
     app.listen(PORT, () => {

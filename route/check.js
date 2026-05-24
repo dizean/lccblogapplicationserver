@@ -1,10 +1,19 @@
 import express from "express";
-import fs from "fs";
-import path from "path";
 import db from "../config/db.js";
-import { faceapi, canvas } from "../service/faceService.js";
 
 const router = express.Router();
+
+// PURE JS distance function (no face-api.js needed)
+function euclideanDistance(a, b) {
+  let sum = 0;
+
+  for (let i = 0; i < a.length; i++) {
+    const diff = a[i] - b[i];
+    sum += diff * diff;
+  }
+
+  return Math.sqrt(sum);
+}
 
 router.post("/", async (req, res) => {
   try {
@@ -14,35 +23,37 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Invalid descriptor" });
     }
 
-    const input = new Float32Array(descriptor);
+    const input = descriptor; // already array from frontend
 
-    const query = "SELECT * FROM visitors_faces";
+    const query = "SELECT vf.visitor_id, descriptor, name FROM visitors_faces vf LEFT JOIN visitors_log vl ON vf.visitor_id = vl.id;";
 
     db.query(query, (err, results) => {
       if (err) return res.status(500).json({ error: err.message });
 
       let match = null;
-      let lowest = 0.5;
+      let lowest = 0.5; 
 
       for (const row of results) {
         const stored = JSON.parse(row.descriptor);
 
-        const storedArr = new Float32Array(stored);
-
-        const distance = faceapi.euclideanDistance(input, storedArr);
+        const distance = euclideanDistance(input, stored);
 
         if (distance < lowest) {
           lowest = distance;
 
           match = {
             visitor_id: row.visitor_id,
+            name: row.name,
             distance,
           };
         }
       }
-
+console.log(match);
       if (match) {
-        return res.json({ match: true, visitor: match });
+        return res.json({
+          match: true,
+          visitor: match,
+        });
       }
 
       return res.json({ match: false });
