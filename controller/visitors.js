@@ -39,12 +39,12 @@ export const loginVisitor = async (req, res) => {
       const logId = result.insertId;
 
       // STEP 2: IF EXISTING USER → STOP HERE
-    //   if (mode !== "NEW") {
-    //     return res.json({
-    //       message: "Existing visitor logged",
-    //       logId,
-    //     });
-    //   }
+      if (mode !== "NEW") {
+        return res.json({
+          message: "Existing visitor logged",
+          logId,
+        });
+      }
 
       // STEP 3: NEW USER MUST HAVE IMAGE
       if (!image) {
